@@ -1,0 +1,307 @@
+---
+title: "Lab5-Data Wrangling"
+author: "Xiaoyu Zhu"
+date: "9/24/2021"
+output: github_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r }
+if (!file.exists("met_all.gz"))
+  download.file(
+    url = "https://raw.githubusercontent.com/USCbiostats/data-science-data/master/02_met/met_all.gz",
+    destfile = "met_all.gz",
+    method   = "libcurl",
+    timeout  = 60
+    )
+met <- data.table::fread("met_all.gz")
+```
+
+```{r packages}
+if (!require(data.table)){
+  install.packages("data.table")}
+
+if (!require(gifski)){
+  install.packages("gifski")}
+
+if (!require(gganimate)){
+  install.packages("gganimate")}
+
+library(data.table)
+library(tidyverse)
+library(dtplyr)
+library(dplyr)
+library(knitr)
+library(leaflet)
+
+```
+
+```{r}
+stations <- fread("ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-history.csv")
+stations[, USAF := as.integer(USAF)]
+```
+
+```{r}
+stations[, USAF   := fifelse(USAF == 999999, NA_integer_, USAF)]
+stations[, CTRY   := fifelse(CTRY == "", NA_character_, CTRY)]
+stations[, STATE  := fifelse(STATE == "", NA_character_, STATE)]
+```
+
+```{r}
+stations <- unique(stations[, list(USAF, CTRY, STATE)])
+
+stations <- stations[!is.na(USAF)]
+
+stations[, n := 1:.N, by = .(USAF)]
+stations <- stations[n == 1,][, n := NULL]
+```
+
+
+## Merge station& met
+```{r merging}
+df<-merge(
+  x=met,
+  y=stations,
+  all.x = T,
+  all.y = F,
+  by.x = "USAFID",
+  by.y = "USAF"
+)
+
+
+
+```
+
+## Question 1: Representative station for the US
+### generate a representative of each station. We will use the average (meadian could also be a good way to represent it, but it will depend on the case)
+```{r}
+station_avg<-
+df[,.(
+  temp     = mean(temp,na.rm=T),
+  wind.sp  = mean(wind.sp,na.rm =T),
+  atm.press= mean(atm.press,na.rm= T)
+),by=.(USAFID,STATE)]
+
+```
+
+### now we need to identify quantiles per variables
+```{r}
+medians<-
+  station_avg[,.(
+  temp_50=quantile(temp,probs=.5,na.rm=T),
+  wind.sp_50=quantile(wind.sp, probs=.5,na.rm=T),
+  atm.press_50=quantile(atm.press,probs=.5,na.rm=T)
+)]
+medians
+```
+
+### now we can find the stations that are the closest to these values
+```{r}
+station_avg[,temp_dist:=abs(temp-medians$temp_50)]
+median_temp_station<-station_avg[order(temp_dist)][1]
+median_temp_station
+```
+the median temperature 
+
+```{r}
+station_avg[,wind.sp_dist:=abs(wind.sp-medians$wind.sp_50)]
+median_windsp_station<-station_avg[order(wind.sp_dist)][1]
+median_windsp_station
+```
+the median wind speed
+
+
+```{r}
+station_avg[,atm.press_dist:=abs(atm.press-medians$atm.press_50)]
+median_atmpress_station<-station_avg[order(atm.press_dist)][1]
+median_atmpress_station
+```
+the median atm press
+
+The station that is closest to the median temperature is 720458.
+The station that is closest to the median wind speed is 720929. 
+The station that is closest to the median wind speed is 722238.
+
+## Question 2: Representative station per state
+### Just like the previous question, you are asked to identify what is the most representative, the median, station per state. This time, instead of looking at one variable at a time, look at the euclidean distance. If multiple stations show in the median, select the one located at the lowest latitude.
+
+we first need to recover the state variable, by MERGEING :)
+
+```{r}
+# we first need to recover the state variable, by MERGEING :)
+station_avg2<-
+df[,.(
+  temp     = mean(temp,na.rm=T),
+  wind.sp  = mean(wind.sp,na.rm =T),
+  atm.press= mean(atm.press,na.rm= T)
+),by=.(USAFID,STATE)]
+```
+
+
+```{r}
+# Get the medians by state for temperature, wind speed, and atm press
+station_avg2[,temp_50:=quantile(temp,probs=.5,na.rm=T),by=STATE]
+
+station_avg2[,wind.sp_50:=quantile(wind.sp,probs=.5,na.rm=T),by=STATE]
+
+station_avg2[,atm.press_50:=quantile(atm.press,probs=.5,na.rm=T),by=STATE]
+
+```
+
+```{r}
+# Calculate Euclidean Distance
+station_avg2[, eudist := sqrt(
+  (temp - temp_50)^2 + (wind.sp - wind.sp_50)^2)]
+
+```
+
+```{r}
+# Lowest euclidean distance by State
+station_avg2[ , .SD[which.min(eudist)], by = STATE]
+```
+
+The station with the lowest euclidean distance between temperature and wind speed is `r median_atmpress_station$USAFID`.
+
+
+## Question 3: In the middle?
+### For each state, identify what is the station that is closest to the mid-point of the state. Combining these with the stations you identified in the previous question, use leaflet() to visualize all ~100 points in the same figure, applying different colors for those identified in this question.
+
+```{r}
+# Calculate midpoint by State
+station_avg2[, midpoint := sqrt(
+  ((temp - temp_50)^2 + (wind.sp - wind.sp_50)^2) / 2
+                              )]
+```
+
+```{r}
+# Lowest midpoint by State
+map <- station_avg2[ , .SD[which.min(midpoint)], by = STATE]
+```
+
+```{r}
+# Create table to map lat/lon
+hashtable <- df %>%
+  select(USAFID, lat, lon)
+hashtable <- distinct(hashtable, USAFID, .keep_all = TRUE)
+```
+
+
+```{r}
+# Merge lat/lon data
+# Merge state information
+map2 <- merge(x = map, y = hashtable, by.x = 'USAFID', by.y = "USAFID", all.x = TRUE, all.y = FALSE)
+```
+
+```{r}
+# Create leaflet map
+mp.pal <- colorNumeric(c('darkgreen','goldenrod','brown'), domain=map2$midpoint)
+# Leadlet map
+tempmap <- leaflet(map2) %>% 
+# The looks of the Map
+  addProviderTiles('CartoDB.Positron') %>% 
+# Some circles
+  addCircles(
+    lat = ~lat, lng=~lon,
+    label = ~paste0(round(temp,2), ' C'), 
+    color = ~ mp.pal(midpoint),
+    opacity = 1, 
+    fillOpacity = 1, 
+    radius = 500
+    ) %>%
+# And a pretty legend
+  addLegend('bottomleft', pal=mp.pal, values=map2$midpoint,
+          title='Midpoint by State', opacity=1)
+tempmap
+```
+
+
+
+## Question 4: Means of means
+### Using the quantile() function, generate a summary table that shows the number of states included, average temperature, wind-speed, and atmospheric pressure by the variable “average temperature level,” which you’ll need to create.
+
+### Start by computing the states’ average temperature. Use that measurement to classify them according to the following criteria:low: temp < 20 Mid: temp >= 20 and temp < 25 High: temp >= 25
+
+```{r}
+# create
+df[,state_temp :=mean(temp,na.rm=T),by= STATE]
+df[,temp_cat   :=fifelse(
+  state_temp<20,"low-temp",
+  fifelse(state_temp<25,"mid-temp","high_temp"))
+  ]
+```
+
+### Once you are done with that, you can compute the following:
+### Number of entries (records),
+### Number of NA entries,
+### Number of stations,
+### Number of states included, and
+### Mean temperature, wind-speed, and atmospheric pressure.
+### All by the levels described before.
+
+```{r}
+# Summary table
+df[, .(
+  N_entries = .N,
+  N_stations = length(unique(USAFID)),
+  N_missing = sum(is.na(.SD)),
+  N_states = length(unique(STATE)),
+  mean_temperature = mean(temp, na.rm = TRUE),
+  mean_windspeed = mean(wind.sp, na.rm = TRUE),
+  mean_atmpress = mean(atm.press, na.rm = TRUE)
+), by = temp_cat]
+```
+
+
+
+```{r}
+table(met$temp_cat,useNA = "always")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,62 @@
+---
+title: "class practice"
+author: "Xiaoyu Zhu"
+date: "10/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(stringr)
+fn <- "mtsamples.csv"
+if (!file.exists(fn))
+  download.file(
+    url = "https://github.com/USCbiostats/data-science-data/raw/master/00_mtsamples/mtsamples.csv",
+    destfile = fn
+  )
+mtsamples <- fread(fn, sep = ",", header = TRUE)
+```
+```{r}
+# How many entries contain the word tumor
+mtsamples[grepl("tumor", description, ignore.case = TRUE), .N]
+
+```
+
+```{r}
+mtsamples[, pronoun := str_extract(
+  string  = tolower(transcription),
+  pattern = "he|his|him|they|them|theirs|ze|hir|hirs|she|hers|her"
+)]
+mtsamples[1:100,pronoun]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

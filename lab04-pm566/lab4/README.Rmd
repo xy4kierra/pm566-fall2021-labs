@@ -1,0 +1,243 @@
+---
+title: "lab4rmk-pm566"
+author: "Xiaoyu Zhu"
+date: "9/17/2021"
+output: 
+  -github_document
+  -html_document
+  toc: true
+  toc_float: true
+  code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+## Foreword
+### 1: if we have data.table package
+```{r packages}
+if (!require(data.table)){
+  install.packages("data.table")}
+
+if (!require(gifski)){
+  install.packages("gifski")}
+
+if (!require(gganimate)){
+  install.packages("gganimate")}
+
+library(data.table)
+library(tidyverse)
+```
+
+## Foreword
+### 2: if we have leaflet package
+```{r}
+if (!require(leaflet)){
+  install.packages("leaflet")
+}
+library(leaflet)
+```
+
+
+
+## Lab Description
+### The objective of the lab is to examine the association between weekly average dew point temperature and wind speed in four regions of the US and by elevation.
+
+## Step1 Read in the data
+
+```{r data-read,cache=TRUE}
+if (!file.exists("met_all.gz"))
+  download.file(
+    url = "https://raw.githubusercontent.com/USCbiostats/data-science-data/master/02_met/met_all.gz",
+    destfile = "met_all.gz",
+    method   = "libcurl",
+    timeout  = 60
+    )
+met <- data.table::fread("met_all.gz")
+```
+
+## Step2 Prepare the data
+
+```{r data-prep,cache=TRUE}
+# Remove temperatures less than -17C
+met <- met[temp>=-17]
+
+# Make sure there are no missing data in the key variables coded as 9999, 999, etc
+met [,table(is.na(temp))]
+met [,table(is.na(rh))]
+met [,table(is.na(wind.sp))]
+met [,table(is.na(vis.dist))]
+met [,table(is.na(dew.point))]
+met [,table(is.na(lat))]
+met [,table(is.na(lon))]
+met [,table(is.na(elev))]
+
+met [,range(temp,na.rm = TRUE)]
+met [,range(rh,na.rm = TRUE)]
+met [,range(wind.sp,na.rm = TRUE)]
+met [,range(vis.dist,na.rm = TRUE)]
+met [,range(dew.point,na.rm = TRUE)]
+met [,range(lat,na.rm = TRUE)]
+met [,range(lon,na.rm = TRUE)]
+met [,range(elev,na.rm = TRUE)]
+
+
+met[temp ==9999.0,temp:= NA]
+
+# Generate a date variable using the functions as.Date() (hint: You will need the following to create a date paste(year, month, day, sep = "-")).
+met[,ymd:= as.Date(paste(year,month,day,sep="-"))]
+
+# Using the data.table::week function, keep the observations of the first week of the month.
+met[,table(week(ymd)==31)]
+
+# Compute the mean by station of the variables temp, rh, wind.sp, vis.dist, dew.point, lat, lon, and elev.
+met_avg <- met[
+  ,.(
+    temp     =mean(temp,na.rm= TRUE),
+    rh       =mean(rh,na.rm= TRUE),
+    wind.sp  =mean(wind.sp,na.rm= TRUE),
+    vis.dist =mean(vis.dist,na.rm=TRUE),
+    dew.point=mean(dew.point,na.rm=TRUE),
+    lat      =mean(lat,na.rm=TRUE),
+    lon      =mean(lon,na.rm=TRUE),
+    elev     =mean(elev,na.rm= TRUE)
+    ),by= "USAFID"
+]
+
+# Create a region variable for NW, SW, NE, SE based on lon = -98.00 and lat = 39.71 degrees
+met_avg[lat >= 39.71& lon <= -98,region:="Northwest"]
+met_avg[lat < 39.71& lon <= -98,region:="Southwest"]
+met_avg[lat >= 39.71& lon > -98,region:="Northeast"]
+met_avg[lat < 39.71& lon > -98,region:="Southeast"]
+
+met_avg[,table(region,useNA = "always")] # ???what does this mean
+# Create a categorical variable for elevation as in the lecture slides
+met_avg[,elev_cat:=fifelse(elev>252, "high","low")]
+```
+
+
+# Step3 Use geom_violin to examine the wind speed and dew point temperature by region
+
+```{r violin-temp}
+
+ggplot(met_avg[!is.na(wind.sp)&!is.na(dew.point)]
+       ,mapping = aes(y=wind.sp,x=1))+
+  geom_violin()+
+  facet_grid(~region)
+
+# What I can see in the picture is four weird pictures, in which only the southwest plot seems normally distributed, others are skewed. The northeast plot is too towering, the northwest plot is skewed to the downside, and the southwest plot is skewed to the upside.
+```
+
+
+# Step4 Use geom_jitter with stat_smooth to examine the association between dew point temperature and wind speed by region
+
+```{r}
+ggplot(
+  met_avg[!is.na(dew.point)&!is.na(wind.sp)&!is.na(region)],
+  aes(y=dew.point, x=wind.sp,col=region,
+  linetype=region),
+  col=region,
+  linetype=region)+
+  geom_jitter()+
+  stat_smooth(method="lm",se=F)
+  
+# In the picture, we can see all the region has a positive relationship between point temperature and wind speed. The slope of southwest is highest. And southeast region has highest mean of temperature.
+```
+
+
+
+# Step5 Use geom_bar to create barplots of the weather stations by elevation category coloured by region
+```{r}
+ggplot(
+  met_avg[!is.na(elev_cat)&elev_cat!="clear"&!is.na(dew.point)],
+  aes(x=elev_cat,fill=region))+
+  geom_bar(position = "dodge",colour="black")+
+  scale_fill_brewer(palette = "Blues")+
+  labs(title = "Barplots of weather station divided by elevation category",x="weather station",y="elevation")
+  
+# From the picture we can see, the northeast has the highest elevation, however, the northwest has the lowest elevation.
+
+```
+
+# Step6 Use stat_summary to examine mean dew point and wind speed by region with standard deviation error bars
+
+```{r plot}
+ggplot(
+  met_avg[!is.na(wind.sp)],
+  mapping=aes(x=region,y=wind.sp))+
+  stat_summary(fun.data = "mean_sdl")+
+  stat_summary(fun.data = "mean_sdl",geom="errorbar")
+
+ggplot(
+  met_avg[!is.na(dew.point)],
+  mapping=aes(x=region,y=dew.point))+
+  stat_summary(fun.data = "mean_sdl")+
+  stat_summary(fun.data = "mean_sdl",geom="errorbar")
+
+# From the two picture we can see, the point temperature all have higher variance than wind speed in these area. Dew point temperature has various variance and wind speed has more consistent variance.
+```
+
+# Step7 Make a map showing the spatial trend in relative h in the US
+
+```{r}
+library(leaflet)
+temp.pal<- colorNumeric(c('purple','pink','blue'),domain = met_avg[!is.na(rh)]$rh) #make the color palette
+met_avg<-met_avg[!is.na(rh)] 
+leaflet(met_avg) %>%
+  addProviderTiles('CartoDB.Positron') %>%
+  addCircles(
+    lat=~lat,lng=~lon,
+    label=~paste0(round(rh,2),'rh'),color= ~ temp.pal(rh),
+    opacity = 1,fillOpacity = 1, radius = 500)%>%
+  # And a pretty legend
+  addLegend('bottomleft',pal=temp.pal,value=met_avg$rh,
+            title = 'Temperature,C',opacity = 1)%>%
+  addMarkers(~lon, ~lat, rank(met_avg$rh<=10)) #why my points are so many... that larger than 10?
+                        
+```
+
+
+# Step 8: Use a ggplot extension
+
+```{r}
+library(ggplot2)
+library(gganimate)
+ani<-ggplot(data = met_avg[!is.na(dew.point)&!is.na(wind.sp)], mapping = aes(x = dew.point, y = wind.sp))+
+  geom_point() + 
+  transition_states(region,transition_length = 2,state_length = 1)
+
+animate(ani, renderer = gifski_renderer(),start_pause = 3,duration  = 5)
+anim_save("output.gif")
+
+```
+
+
+
+
+
+
+
+
+

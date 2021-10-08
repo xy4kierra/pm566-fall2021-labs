@@ -1,0 +1,131 @@
+---
+title: "lab07-pm566"
+author: "Xiaoyu Zhu"
+date: "10/8/2021"
+output: 
+github_document:
+  html_document:false
+  html_preview:default
+  word_document:false
+  word_preview:default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## packages
+```{r}
+library(tidyverse)
+library(httr)
+library(xml2)
+library(stringr)
+```
+
+# Question 1: How many sars-cov-2 papers?
+
+```{r }
+if (knitr::is_html_output(excludes = "gfm")){}
+```
+
+```{r}
+
+# Downloading the website
+website <- xml2::read_html("https://pubmed.ncbi.nlm.nih.gov/?term=sars-cov-2")
+
+# Finding the counts
+counts <- xml2::xml_find_first(website, "/html/body/main/div[9]/div[2]/div[2]/div[1]/span")
+
+# Turning it into text
+counts <- as.character(counts)
+
+# Extracting the data using regex
+stringr::str_extract(counts, "[0-9,]+")
+
+```
+
+
+# Question 2: Academic publications on COVID19 and Hawaii
+```{r}
+library(httr)
+query_ids <- GET(
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+  query = list(
+    db="pubmed",
+    term="covid19 hawaii",
+    retmax=1000)
+)
+
+# Extracting the content of the response of GET
+ids <- httr::content(query_ids)
+ids
+```
+
+
+
+# Question 3: Get details about the articles
+```{r}
+# Turn the result into a character vector
+ids <- as.character(ids)
+
+# Find all the ids 
+ids <- stringr::str_extract_all(ids, "<Id>|<Id>")[[1]]
+
+# Remove all the leading and trailing <Id> </Id>. Make use of "|"
+ids <- stringr::str_remove_all(ids, "<Id>|<Id>")
+```
+
+
+```{r}
+publications <- GET(
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+  query = list(
+    db="pubmed",
+    id=paste(ids, collapse=","),
+    term="covid19 hawaii",
+    retmax=1000)
+)
+
+# Turning the output into character vector
+publications <- httr::content(publications)
+publications_txt <- as.character(publications)
+```
+
+
+
+# Question 4: Distribution of universities, schools, and departments
+
+```{r}
+library(stringr)
+institution <- str_extract_all(
+  str_to_lower(publications_txt),
+  "university\\s+ of\\s+(southern|new|the|northern)?\\s*[[:alpha:]-]+|[[:alpha:]-]+\\s+institute\\s+of\\s+[[:alpha:]-]+"
+  ) 
+institution <- unlist(institution)
+table(institution)
+```
+
+# Question 5: Form a database
+
+```{r}
+#
+pub_char_list <- xml2::xml_children(publications)
+pub_char_list <- sapply(pub_char_list, as.character)
+```
+
+
+```{r}
+#get the abstrcas
+#abstracts <- str_extract(pub_char_list, "<Abstract>[[:print:][:space:]]+</Abstract>")
+#abstracts <- str_remove_all(abstracts, '</?[[:alnum:]- =\"]>')
+#abstracts <- str_remove_all(abstracts, "[[:space:]]+"," ")
+```
+
+
+```{r}
+
+```
+
+
+
+
