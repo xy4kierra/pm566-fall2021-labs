@@ -25,6 +25,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Give yourself a few minutes to think about what you just learned. List three examples of problems that you believe may be solved using parallel computing, and check for packages on the HPC CRAN task view that may be related to it.
 
 ## Problem 2: Before you
+### The following functions can be written to be more efficient without using parallel:
+## This function generates a n x k dataset with all its entries distributed poission with mean lambda.
 ```{r}
 fun1 <- function(n = 100, k = 4, lambda = 4) {
   x <- NULL
@@ -51,6 +53,7 @@ microbenchmark::microbenchmark(
   fun1alt()
 )
 ```
+## Find the column max (hint: Checkout the function max.col()).
 
 ```{r}
 # Data Generating Process (10 x 10,000 matrix)
@@ -58,11 +61,16 @@ set.seed(1234)
 x <- matrix(rnorm(1e4), nrow=10)
 # Find each column's max value
 fun2 <- function(x) {
-  apply(x, 2, max)
+  apply(x, 2, max) # actually a for loop
 }
 fun2alt <- function(x) {
-  # YOUR CODE HERE
-  x[cbind(max.col(t(x)), 1:ncol(x))]
+  # position of the max value per row of x.
+  idx<-max.col(t(x))
+  # Do something to get the actual max value
+  # x[cbind(1,15)]~x[1,15]
+  # want to access x[1,16], x[4,1]
+  # x[rbind(c(1,16),c(4,1))]
+  x[cbind(idx, 1:ncol(x))]
 }
 
 # Benchmarking
