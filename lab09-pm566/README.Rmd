@@ -1,0 +1,78 @@
+---
+title: "Lab 9 - HPC"
+author: "Xiaoyu Zhu"
+date: "10/29/2021"
+output:
+  github_document:
+  html_document:
+    html_preview: false
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Learning goals
+###In this lab, you are expected to learn/put in practice the following skills:
+
+### Evaluate whether a problem can be parallelized or not.
+### Practice with the parallel package.
+### Use Rscript to submit jobs
+### Practice your skills with Git.
+
+## Problem 1: Think
+### Give yourself a few minutes to think about what you just learned. List three examples of problems that you believe may be solved using parallel computing, and check for packages on the HPC CRAN task view that may be related to it.
+
+## Problem 2: Before you
+```{r}
+fun1 <- function(n = 100, k = 4, lambda = 4) {
+  x <- NULL
+  for (i in 1:n)
+    x <- rbind(x, rpois(k, lambda))
+  return(x)
+}
+
+fun1alt <- function(n = 100, k = 4, lambda = 4) {
+  # YOUR CODE HERE
+}
+
+fun1(5,10)
+ans<-fun1(5000,10)
+
+fun1alt <- function(n = 100, k = 4, lambda = 4) {
+  matrix(rpois(n * k, lambda = lambda), ncol = k)
+}
+
+
+# Benchmarking
+microbenchmark::microbenchmark(
+  fun1(),
+  fun1alt()
+)
+```
+
+```{r}
+# Data Generating Process (10 x 10,000 matrix)
+set.seed(1234)
+x <- matrix(rnorm(1e4), nrow=10)
+# Find each column's max value
+fun2 <- function(x) {
+  apply(x, 2, max)
+}
+fun2alt <- function(x) {
+  # YOUR CODE HERE
+  x[cbind(max.col(t(x)), 1:ncol(x))]
+}
+
+# Benchmarking
+ans_benchmark <- microbenchmark::microbenchmark(
+  fun2(x),
+  fun2alt(x), unit = "relative"
+)
+plot(ans_benchmark)
+```
+
+
+
+
