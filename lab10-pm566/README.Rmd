@@ -1,5 +1,5 @@
 ---
-title: 'lab11 SQL'
+title: 'Lab 10 - SQL'
 author: "Xiaoyu Zhu"
 date: "11/5/2021"
 output: github_document
@@ -40,18 +40,22 @@ dbListTables(con)
 
 IP: Use can use the following QUERY to see the structure of a table
 
-```{r}
-# PRAGMA table_info(actor)
+You can also use knitr + SQL!
 
+```{sql, connection=con, output.var="x1"}
+PRAGMA table_info(actor)
 ```
+
+```{r}
+x1
+```
+
+This is equivalent to use `dbGetQuery`
 
 ```{r}
 dbGetQuery(con, "PRAGMA table_info(actor)")
 ```
 
-```{r}
-
-```
 # Exercise 1
 ### Retrive the actor ID, first name and last name for all actors using the actor table. Sort by last name and then by first name.
 
@@ -128,8 +132,8 @@ WHERE ___ AND ___
 dbGetQuery(con,"
 SELECT staff_id, COUNT(*) AS N
 FROM payment
-WHERE amount>5
-GROUP BY staff_id
+WHERE amount>5 AND amount<8
+GROUP BY staff_id 
 ")
 ```
 
@@ -146,6 +150,17 @@ FROM payment AS p
 WHERE c.last_name = 'DAVIS'")
 ```
 
+# Exercise 6
+## Exercise 6.1
+### Use COUNT(*) to count the number of rows in rental
+```{r}
+dbGetQuery(con,"
+SELECT rental_id, 
+COUNT(*) AS nrows
+FROM rental
+")
+```
+
 
 
 
@@ -154,19 +169,27 @@ WHERE c.last_name = 'DAVIS'")
 
 ```{r}
 dbGetQuery(con,"
-SELECT COUNT(*) as num_rentals, customer_id
+SELECT customer_id, COUNT(*) AS 'number of each customer id'
 FROM rental
 GROUP BY customer_id
+LIMIT 10
 ")
 ```
 
 ## Exercise 6.3
+### Repeat the previous query and sort by the count in descending order
 ```{r}
 dbGetQuery(con,"
-SELECT COUNT(*) AS num_rentals, customer_id
+SELECT customer_id, 
+COUNT(*) AS 'number of each customer id'
 FROM rental
 GROUP BY customer_id
-ORDER BY num_rentals DESC
+/*
+This is equivalent to
+ORDER BY -`N Rentals` LIMIT 5
+*/
+ORDER BY 'number of each customer id' DESC
+LIMIT 10
 ")
 ```
 
@@ -188,10 +211,10 @@ ORDER BY num_rentals DESC
 ### The following query calculates a number of summary statistics for the payment table using MAX, MIN, AVG and SUM
 ```{r}
 dbGetQuery(con,"
-SELECT MAX(amount) as max,
-       MIN(amount) as min,
-       AVG(amount) as avg,
-       SUM(amount) as sum,
+SELECT MAX(amount) as 'max of payment',
+       MIN(amount) as 'min of payment',
+       AVG(amount) as 'avg of payment',
+       SUM(amount) as 'sum of payment',
        customer_id
 FROM payment
 LIMIT 5
@@ -203,13 +226,14 @@ LIMIT 5
 
 ```{r}
 dbGetQuery(con,"
-SELECT MAX(amount) as max,
-       MIN(amount) as min,
-       AVG(amount) as avg,
-       SUM(amount) as sum,
+SELECT MAX(amount) as 'max of payment',
+       MIN(amount) as 'min of payment',
+       AVG(amount) as 'avg of payment',
+       SUM(amount) as 'sum of payment',
        customer_id
 FROM payment
 GROUP BY customer_id
+LIMIT 10
 ")
 ```
 
