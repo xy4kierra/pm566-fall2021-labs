@@ -2,6 +2,8 @@
 title: "Lab 11 - Interactive Visualization"
 author: "Xiaoyu Zhu"
 date: "11/12/2021"
+output:
+github_document:
 link-citations: yes
 editor_options: 
   chunk_output_type: console
@@ -85,8 +87,8 @@ Confirm the variables are now correctly formatted
 Inspect the range values for each variable. What is the date range? The range of cases and deaths?
 
 date range: from "2020-01-21" to "2021-11-11"
-range of cases: from 1 to 973517   
-range of deaths: from 0 to 33305
+range of cases: from 1 to 4993930   
+range of deaths: from 0 to 73132
 ```{r}
 # format the date
 cv_states$date <- as.Date(cv_states$date, format="%Y-%m-%d")
