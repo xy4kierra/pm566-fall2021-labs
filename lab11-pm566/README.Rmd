@@ -4,9 +4,6 @@ author: "Xiaoyu Zhu"
 date: "11/12/2021"
 output:
 github_document:
-link-citations: yes
-editor_options: 
-  chunk_output_type: console
 
 ---
 
@@ -402,4 +399,8 @@ fig_Today <- fig
 ### FINISH THE CODE HERE ###
 subplot( fig_May1, fig_Today )
 ```
+
+The case case fatality rate increased in New York and decreased in other states. It may due to large amount of cases but limited medical resources in New York. 
+
+
 
