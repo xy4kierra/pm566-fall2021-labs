@@ -2,9 +2,8 @@
 title: "Lab 11 - Interactive Visualization"
 author: "Xiaoyu Zhu"
 date: "11/12/2021"
-output:
-github_document:
-
+output: github_document
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
