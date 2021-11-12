@@ -184,13 +184,13 @@ Done! Knit the document, commit, and push.
 You can still share the HTML document on github. You can include a link in your `README.md` file as the following:
 
 ```md
-View [here](https://ghcdn.rawgit.org/:user/:repo/:tag/:file)
+View [here](https://github.com/xy4kierra/pm566-fall2021-labs/tree/main/lab07-pm566)
 ```
 
 For example, if we wanted to add a direct link the HTML page of lecture 7, we could do something like the following:
 
 ```md
-View week7-lab[here](https://ghcdn.rawgit.org/lysethan/PM566-labs/master/week7/week7-lab.html
+View week7-lab[here](https://github.com/xy4kierra/pm566-fall2021-labs/blob/main/lab07-pm566/README.html)
 ```
 
 
