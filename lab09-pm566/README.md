@@ -200,5 +200,6 @@ ans0
 system.time(my_boot(dat = data.frame(x, y), my_stat, R = 4000, ncpus = 2L))
 ```
 
+
     ##    user  system elapsed 
     ##   0.049   0.009   0.777
