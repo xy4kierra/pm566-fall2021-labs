@@ -1,5 +1,5 @@
 ---
-title: "lab6"
+title: "README"
 author: "Xiaoyu Zhu"
 date: "10/1/2021"
 output: github_document
@@ -9,22 +9,203 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## prepare the packages
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r }
+library(tidyverse)
+library(tidytext)
+library(dplyr)
+library(tibble)
+library(knitr)
+library(forcats)
 
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+## download the data
+```{r get-data}
+fn<-"matsamples.csv"
+if (!file.exists(fn))
+download.file("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/00_mtsamples/mtsamples.csv",destfile=fn)
 
-You can also embed plots, for example:
+mtsamples<-read.csv(fn)
+mtsamples<-as_tibble(mtsamples)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Question 1: What specialties do we have?
+### We can use count() from dplyr to figure out how many different catagories do we have? Are these catagories related? overlapping? evenly distributed?
+```{r}
+specialties<-mtsamples%>%
+count(medical_specialty)
+# there are `r nrow(specialities)`specialty 
+
+
+specialties%>%
+  arrange(desc(n))%>%
+  top_n(15)%>%
+  knitr::kable()
+
+```
+
+
+```{r}
+# method1
+ggplot(mtsamples,aes(x=medical_specialty))+
+  geom_histogram(stat = "count")+
+  coord_flip()
+```
+
+```{r}
+# method2
+ggplot(specialties,aes(x=n,y=fct_reorder(medical_specialty,n)))+
+  geom_col()
+```
+
+
+## Question 2
+### Tokenize the the words in the transcription column
+### Count the number of times each token appears
+### Visualize the top 20 most frequent words
+
+```{r}
+mtsamples%>%
+  unnest_tokens(output = word, input=transcription)%>%
+  count(word,sort= T)%>%
+  top_n(20)%>%
+  ggplot(aes(x=n,y=fct_reorder(word,n)))+
+  geom_col()
+
+
+```
+
+
+
+
+
+## Question 3
+### Redo visualization but remove stopwords before
+```{r}
+# Remove Stop Words
+transcription_20_sw <- 
+  mtsamples %>%
+  unnest_tokens(output = word, input = transcription) %>%
+  count(word, sort = TRUE) %>%
+  anti_join(stop_words, by = "word") %>%
+  top_n(20)
+
+
+```
+
+```{r}
+transcription_20_sw %>%
+  knitr::kable()
+```
+
+```{r}
+# Remove stop Words AND numbers
+transcription2 <- 
+  mtsamples %>%
+  unnest_tokens(output = word, input = transcription) %>%
+  count(word, sort = TRUE) %>%
+  anti_join(stop_words, by = "word") %>%
+  filter(!grepl(pattern = "^[0-9]+$", x = word)) %>%
+  top_n(20)
+```
+
+```{r}
+transcription2 %>%
+  knitr::kable()
+```
+
+
+```{r}
+# Visualize the top 20 without the stop words AND numbers
+ggplot(transcription2, aes(x = word, y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+## Question 4
+### repeat question 2, but this time tokenize into bi-grams. how does the result change if you look at tri-grams?
+```{r}
+mtsamples%>%
+  unnest_tokens(output = word, input=transcription)%>%
+  count(word,sort= T)%>%
+  top_n(20)%>%
+  ggplot(aes(x=n,y=fct_reorder(word,n)))+
+  geom_col()
+
+```
+
+## Question 5
+### Using the results you got from questions 4. Pick a word and count the words that appears after and before it.
+### Let’s take a look at the word “patient” since it shows up frequently.
+
+```{r}
+# Create a tri-gram and separate into 3 columns
+# Also remove stop words & numbers
+# Before
+mtsamples %>%
+  unnest_ngrams(ngram, transcription, n = 3) %>%
+  separate(ngram, into = c("before", "word", "after"), sep = " ") %>%
+  select(before, word, after) %>%
+  filter(word == "patient") %>%
+  count(before, sort = TRUE) %>%
+  anti_join(stop_words, by = c("before" = "word")) %>%
+  filter(!grepl(pattern = "^[0-9]+$", x = before)) %>%
+  top_n(20) %>%
+  knitr::kable()
+```
+
+```{r}
+# After
+# Before
+mtsamples %>%
+  unnest_ngrams(ngram, transcription, n = 3) %>%
+  separate(ngram, into = c("before", "word", "after"), sep = " ") %>%
+  select(before, word, after) %>%
+  filter(word == "patient") %>%
+  count(after, sort = TRUE) %>%
+  anti_join(stop_words, by = c("after" = "word")) %>%
+  filter(!grepl(pattern = "^[0-9]+$", x = after)) %>%
+  top_n(20) %>%
+  knitr::kable()
+```
+
+```{r}
+# After
+# Before
+mtsamples %>%
+  unnest_ngrams(ngram, transcription, n = 3) %>%
+  separate(ngram, into = c("before", "word", "after"), sep = " ") %>%
+  select(before, word, after) %>%
+  filter(word == "patient") %>%
+  count(after, sort = TRUE) %>%
+  anti_join(stop_words, by = c("after" = "word")) %>%
+  filter(!grepl(pattern = "^[0-9]+$", x = after)) %>%
+  top_n(20) %>%
+  knitr::kable()
+```
+
+## Question 6
+### Which words are most used in each of the specialties. you can use group_by() and top_n() from dplyr to have the calculations be done within each specialty. Remember to remove stopwords. How about the most 5 used words?
+```{r}
+mtsamples %>%
+  unnest_tokens(word, input = transcription) %>%
+  group_by(medical_specialty) %>%
+  count(word, sort = TRUE) %>%
+  anti_join(stop_words, by = "word") %>%
+  filter(!grepl(pattern = "^[0-9]+$", x = word)) %>%
+  top_n(5) %>%
+  arrange(medical_specialty, desc(n)) %>%
+  knitr::kable()
+
+```
+
+
+
+
+
+
+
