@@ -136,6 +136,7 @@ transcription_20_sw %>%
   knitr::kable()
 ```
 
+<<<<<<< HEAD
 | word       |     n |
 |:-----------|------:|
 | patient    | 22065 |
@@ -369,6 +370,10 @@ mtsamples %>%
   arrange(medical_specialty, desc(n)) %>%
   knitr::kable()
 ```
+=======
+
+You can also embed plots, for example:
+>>>>>>> b673af3cc880ea5fda6ea980ae5b4bf73ac17026
 
     ## Selecting by n
 

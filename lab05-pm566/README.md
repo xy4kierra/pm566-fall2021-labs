@@ -448,6 +448,7 @@ df[, .(
 table(met$temp_cat,useNA = "always")
 ```
 
+
     ## 
     ## <NA> 
     ##    0
