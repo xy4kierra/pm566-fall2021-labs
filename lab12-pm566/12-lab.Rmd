@@ -1,0 +1,581 @@
+---
+title: "Lab 12 - Create a project website"
+author: "Abigail Horn"
+output: 
+    html_document:
+        toc: TRUE
+        toc_float: TRUE
+---
+
+```{r setup, message=FALSE, echo=FALSE, warning=FALSE}
+
+library(data.table)
+library(tidyverse)
+library(dplyr)
+library(plotly)
+library(DT)
+library(knitr)
+
+# INITALIZE CODE CHUNK OPTIONS
+opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  eval=TRUE,
+  echo = TRUE,
+  cache = FALSE,
+  fig.width = 7, 
+  fig.align = 'center',
+  fig.asp = 0.618,
+  out.width = "700px",
+  class.source = "code-r")
+```
+
+
+```{css, echo = FALSE}
+.code-r { /* Code block */
+  font-size: 15px;
+}
+
+.code-r-small { /* Code block */
+  font-size: 10px;
+}
+```
+
+
+<br>
+
+# Objectives
+
+The objective of today's lab is to create a project website using the **rmarkdown** package and deploy it using GitHub pages.
+We will include interactive visualizations on the website.
+
+For this lab, we have created some initial content for you to work with as an example. The code is found at: https://github.com/AbigailHorn/PM566-final-project.
+
+Your objective will be to create your own *project* website using this content as a reference.
+
+Note that if you want to create a *personal* website using the **rmarkdown** package hosted on GitHub Pages, you can do so following the same instructions, with the one difference that the repository you create should be called `YOUR_GH_NAME.github.io`. 
+
+<br>
+
+----
+
+# Workflow Overview
+
+Building websites uses the same reproducible workflow you can use for your analyses and collaborations. It is very iterative. You can do it all from RStudio, with a combination of clicking or typing commands as you feel comfortable. 
+
+There are two main steps for creating a personal website that will be hosted on GitHub:
+
+I. Local setup
+<br>
+II. GitHub setup
+
+<br>
+
+----
+
+<br>
+
+# I. Local Setup
+
+The basic workflow is as follows:
+
+1. Create a project directory and an R Project file (`.Rproj`)
+1. Create a `_site.yml` and `index.Rmd` file in your new directory
+1. Add additional page content if desired through other `.Rmd` files
+1. Edit these files to create content and manage layout (and knit to view)
+1. Add a style sheet (CSS) if desired
+1. Build website
+    - Build tab > Build Website or
+    - in the console: `rmarkdown::render_site()`
+This creates the output: `index.html`
+
+<br>
+
+## Step 0: Look at existing content
+
+Clone the website repository at https://github.com/AbigailHorn/PM566-final-project with example project website content into a directory for the lab, e.g. `"week12-lab"`. 
+
+**Note**: we are not initializing this as a git repository, we will do that in Step 1. We are just downloading the contents.
+
+```shell
+mkdir ~/week12-lab
+git clone https://github.com/AbigailHorn/PM566-final-project
+```
+
+Then open the file `PM-566-final-project.Rproj`. For MacOS you can do that through command line using
+
+```shell
+open PM-566-final-project.Rproj
+```
+
+Otherwise, you can manually open the file from your directory.
+
+Once you have it opened:
+
+- Check out the contents of this repository. What files does it contain?
+
+- Take a few moments to compare the contents of this repository to the final website at https://abigailhorn.github.io/PM566-final-project
+
+
+<br>
+
+## Step 1: Create project website directory
+
+Create and go to the directory you want to create your website in, e.g. `"PM-566-my-final-project"`, and initialize git. 
+
+In command line:
+
+```shell
+mkdir ~/PM-566-my-final-project
+cd ~/PM-566-my-final-project
+git init
+```
+
+<br>
+
+## Step 2: Create and add essential files *from scratch*
+
+Recall from lecture that the minimum requirements for an R Markdown website are:
+
+- `index.Rmd`: contains the content for the website homepage
+- `_site.yml`: contains metadata for the website
+
+Create these essential files, as well as a `README.md`, add all to git queue, and commit to your website repository.
+
+**Note**: You can use the `echo` command in command line to initialize the files (in MacOS you can also use the `touch` command):
+
+```shell
+echo My PM566 Final Project Website > README.md
+echo > _site.yml
+echo > index.Rmd
+git add --all
+git commit -m "initalizing repository"
+```
+
+<br>
+
+## Step 3: Create `.Rproj` file
+
+Create an R Project file using RStudio IDE:
+
+Go to RStudio IDE > File > New Project > Existing Directory
+
+<div align="center"><img src="img/Rproject-img.png" width="200px"></div>
+
+The R Project is useful because RStudio will recognize your project as a website, and provide appropriate build tools. 
+
+**Note**: After creating the R Project and initial files, you *may* need to close the project and reopen it before R will recognize it as a website and show the appropriate build tools.
+
+<br>
+
+## Step 4: Edit the content
+
+### Step 4.1: Edit the YAML file
+
+Edit the `_site.yml` file to include the metadata, layout, and theme you want for your website. 
+
+First let's take a look at a basic example of a `_site.yml` file for a website with one page:
+
+```markdown
+name: "my-website"
+navbar:
+  title: "My Website"
+  left:
+    - text: "Home"
+      href: index.html
+output:
+  html_document:
+    theme: cosmo
+```
+
+This is the minimum you need to include in your `_site.yml`.
+
+Now let's take a look at the `_site.yml` from the website repository you downloaded into `"week12-lab"`. It looks like this:
+
+```markdown
+name: "my-website"
+output_dir: "."
+navbar:
+  title: "PM566 Final Project"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Lab 12"
+      href: 12-lab.html
+  right:
+    - icon: fa-github fa-lg
+      href: https://github.com/USCbiostats/PM566
+    - text: "PM566 Home"
+      href: https://elastic-khorana-70231e.netlify.app/
+output:
+  html_document:
+    theme: cosmo
+    include:
+      after_body: footer.html
+    css: styles.css
+```
+
+Inspecting this, and the output on the completed website at https://abigailhorn.github.io/PM566-final-project, how do you add links to internal webpages? How do you add links to external websites? How do you add icons?
+
+**Note**: recall that the `output_dir` field indicates which directory to copy site content into (`"_site"` is the default if none is specified). It can be `"."` to keep all content within the root website directory alongside the source code.
+
+**Note**: Preview themes [here](https://www.datadreaming.org/post/r-markdown-theme-gallery/#:~:text=There%20are%2012%20additional%20themes,your%20theme%20from%20the%20default%20.) and play around with different options. Themes are easy to change even after you have added content. 
+
+Now your task is to create a YAML for your website that includes only the essential components for your website. Either copy the content of the simple `_site.yml` into your own `_site.yml` file in your website directory `PM-566-my-final-project`, or replicate it yourself line by line.
+
+**Note**: YAML language is very picky so make sure your content is formatted appropriately. If you are not sure, either look up the appropriate text in the [reference guide](https://bookdown.org/yihui/rmarkdown/), search google, or copy from a website you know works!
+
+<br>
+
+### Step 4.2: Edit internal `.Rmd` files
+
+Edit and create `.Rmd` files that contain your website content, which will produce the html pages of your website when you knit them. 
+
+For example, the `index.Rmd` could look like this:
+
+```markdown
+---
+title: "PM566 Final Project"
+author: "Your Name"
+output: 
+    html_document:
+        toc: TRUE
+        toc_float: TRUE
+---
+
+This is my PM566 Final Project website.
+
+```
+
+<br>
+
+The `toc` specifies whether there is a table of contents, and `toc_float` provides the option to float the table of contents to the left of the main document content. The floating table of contents will always be visible even when the document is scrolled. There are other options for how to display the `toc` in R Markdown HTML output which you can read about [here](https://bookdown.org/yihui/rmarkdown/html-document.html#table-of-contents).
+
+<br>
+
+After you are done with your `index.Rmd` file, knit it to check the output. Either click the `Knit` option in the toolbar or in the console type `rmarkdown::render_site("index.Rmd")`. This will render the output into a file `index.html` which you can check out by opening the file in your directory:
+
+<div align="center"><img src="img/view_indexhtml.png" width="200px"></div>
+
+
+<br>
+
+## Step 5: Build website
+
+Now we have the content and layout setup, we can build the website! This can be done in two ways:
+
+- Build tab > Build Website
+
+<div align="center"><img src="img/build.png" width="300px"></div>
+
+- in the console: `rmarkdown::render_site()`
+
+**rmarkdown** has created all the additional files you need for your website. Check them out in your directory. Most importantly, the `index.html` file provides a preview of the site, which you can look at in a browser as above:
+
+<div align="center"><img src="img/view_indexhtml.png" width="200px"></div>
+
+**Note**: As you make changes, you should re-render (or equivalently, re-build) the website. Recall from lecture that RStudio supports "live preview" of changes that you make to supporting files within your website (e.g., CSS, JavaScript, `.Rmd` partials, R scripts, and YAML config files), but this only rebuilds the active page. So once you are happy with the results of rendering you should make sure to rebuild the entire site using `rmarkdown::render_site()` to ensure that all pages inherit your changes.
+
+<br>
+
+### Styles
+
+You will see that your R Markdown website comes with a style class, specified by your chosen theme specified in your YAML (or the default theme if not chosen). You can also modify your site using CSS style sheets. As discussed in lecture, styles can be modified in 3 ways: in-line with HTML, placing a style section in your HTML document, defining the CSS in an external file that is then referenced as a link in your HTML. Feel free to play around with the external style sheet `styles.css` that came with the example website.
+
+<br>
+
+### Commit!
+
+Don't be afraid of commitment! Add your changes as you go along.
+
+```shell
+cd ~/PM-566-my-final-project
+git add --all
+git commit -m "Rendered website"
+```
+
+----
+
+# II. GitHub setup
+
+## Overview
+
+1. Create project on GitHub
+1. Initialize project on Git
+1. Push project files to the GitHub repository for your project
+1. Deploy the website by enabling GitHub pages for the repository
+
+<br>
+
+## Step 6: Create project on GitHub
+
+Create an online (remote) repository for your project using GitHub
+
+<div align="left"><img src="img/create_repository.png" width="200px"></div>
+
+<br>
+
+## Step 7: Initialize project with git
+
+In command line: 
+
+Add the remote using `git remote add`
+
+```shell
+git remote add origin https://github.com/YOUR_GITHUB_NAME/YOUR_PROJECT_NAME.git
+```
+
+Optionally, use the commands `git status` and `git remote -v` to check out the status.
+
+<br>
+
+## Step 8: Push website content to remote
+
+Push the changes to the remote using `git push`
+
+```shell
+git push -u origin main
+```
+
+**Note** In 2020 Github changed its default repository name from "master" to "main", so if you're creating a new repository after 2020, it will named "main".
+
+<br>
+
+## Step 9: Deploy the website
+
+Enable GitHub pages for the repository by going to the repository's Settings > GitHub Pages. For the branch option (left button), you'll switch from the selected "none" to the "main branch" folder. For the folder option (right button) (/(root) vs. /docs), you'll choose /(root) if you included the parameter `output_dir: "."` in your YAML. Otherwise, the output directory will default to the /docs folder, and you should select that as the source folder. Then hit Save:
+
+<div align="center"><img src="img/github_pages_publish.png" width="400px"></div>
+
+<br>
+
+## Step 10: Preview content!
+
+It's live! Go to the website at www.YOUR_GH_NAME.github.io/YOUR_PROJECT_NAME/ (the website should appear to you when you click the appropriate setting in GitHub Pages)
+
+<br>
+
+----
+
+# III. Add interactive visuals
+
+Your task here is to create 2 interactive visuals, using **plotly**, **leaflet**, **DT**, or anything else you have explored, and post them on your website at `index.Rmd`.
+
+<br>
+
+## Step 11: Source processing code
+
+First you can source any necessary code, meaning run it. For example, let's use the COVID-19 data from the NYT we explored in week 11. In the example repository you downloaded into `"week12-lab"`, we have provided the code `process_covid_data.R` which goes through the first steps we carried out in the lab of downloading and processing the data. To source this code, in your `index.Rmd` file, include a code chunk with the `source(process_COVID_data.R)` command: 
+
+````markdown
+`r ''````{r load-data, echo=FALSE}
+source("process_COVID_data.R")
+```
+````
+
+<br>
+
+**Note**: Make sure that you include the following libraries and formatting code at the beginning of your `index.Rmd` file, which will allow you to run the `source("process_COVID_data.R")` code:
+
+
+````markdown
+`r ''````{r setup, message=FALSE, echo=FALSE, warning=FALSE}
+library(data.table)
+library(tidyverse)
+library(dplyr)
+library(plotly)
+library(DT)
+library(knitr)
+```
+````
+
+You may also want to include some code chunk options for your whole document using `opts_chunk$set()`, for example the options we specified in the `12-lab.Rmd` file:
+
+````markdown
+`r ''````
+# Initialize code chunk options
+opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  eval=TRUE,
+  echo = TRUE,
+  cache = FALSE,
+  fig.width = 7, 
+  fig.align = 'center',
+  fig.asp = 0.618,
+  out.width = "700px")
+```
+````
+
+Recall you can override these options for each individual code chunk.
+
+<br>
+
+## Step 12: Add code for visuals
+
+Then you can add some code chunks to create the interactive visuals you want to include. I will add some code to create a couple of the **plotly** figures we created in lab. I am naming each plot but not outputting them here, because I will want to do that in independent code chunks as we will see in the next step.
+
+**Note**: Code chunks do not require names, but it can be useful to name them because they can be referenced elsewhere in the document. Note that if you do name them (like this one: `plot1`), you will need to be sure to give each an independent name because code chunks cannot share the same name.
+
+```{r plot1, class.source="code-r-small"}
+source("process_COVID_data.R")
+p1_scatter <- cv_states_today %>% 
+  plot_ly(x = ~pop_density, y = ~deathsper100k,
+          type = 'scatter', mode = 'markers', color = ~state,
+          size = ~population, sizes = c(5, 70), marker = list(sizemode='diameter', opacity=0.5),
+          hoverinfo = 'text',
+          text = ~paste( paste(state, ":", sep=""), paste(" Cases per 100k: ", per100k, sep="") , paste(" Deaths per 100k: ",
+                        deathsper100k, sep=""), sep = "<br>")) %>%
+  layout(title = "Population-normalized COVID-19 deaths vs. population density",
+                  yaxis = list(title = "Deaths per 100k"), xaxis = list(title = "Population Density"),
+         hovermode = "compare")
+
+# filter out "District of Columbia"
+cv_states_today_scatter <- cv_states_today %>% filter(state!="District of Columbia")
+
+p2_scatter <- cv_states_today_scatter %>% 
+  plot_ly(x = ~pop_density, y = ~deathsper100k,
+          type = 'scatter', mode = 'markers', color = ~state,
+          size = ~population, sizes = c(5, 70), marker = list(sizemode='diameter', opacity=0.5),
+          hoverinfo = 'text',
+          text = ~paste( paste(state, ":", sep=""), paste(" Cases per 100k: ", per100k, sep="") , paste(" Deaths per 100k: ",
+                        deathsper100k, sep=""), sep = "<br>")) %>%
+  layout(title = "Population-normalized COVID-19 deaths vs. population density",
+                  yaxis = list(title = "Deaths per 100k"), xaxis = list(title = "Population Density"),
+         hovermode = "compare")
+```
+
+<br>
+
+Now, create 2 figures of your own, either using the code above, the code from last week's lab, or creating new figures based on the data created by the `process_COVID_data.R` code.
+
+<br>
+<br>
+
+## Step 13: Display figures in tabs {.tabset}
+
+Create tabs to display each figure. We do that using the following R Markdown language using the `{.tabset}` option:
+
+````markdown
+
+## Showcasing plots {.tabset}
+
+### Tab 1
+
+`r ''````{r echo=FALSE}
+p1_scatter
+```
+
+### Tab 2
+
+`r ''````{r echo=FALSE}
+p2_scatter
+```
+
+{-}
+
+````
+
+The `{-}` closes the tabs. Tabs work at multiple levels of hierarchy: ##, ###, and ####.
+
+<br>
+
+The output will look like this:
+
+### Figure 1
+
+```{r p1, echo=FALSE}
+p1_scatter
+```
+
+### Figure 2
+
+```{r p2, echo=FALSE}
+p2_scatter
+```
+
+## {-}
+
+<br>
+
+Knit the page `index.Rmd` to check the output. It may take a bit longer now that we're also processing the data from the NYT. (Recall from lecture we can do that once per session by inputting the global option `opts_chunk$set(cache=TRUE)`).
+
+<br>
+
+## Step 14: Update website content
+
+You've now made some edits to your website. To get the updates onto the live webpage, you need to re-render the site to create the HTML output from your `.Rmd` file edits, and push the updates to the remote GitHub repository:
+
+- In the R console: `rmarkdown::render_site()`
+
+- Preview contents by looking at the `index.html` file in a browser
+
+- Add and push changes to remote from your website project repository locally (e.g. `PM-566-my-final-project`):
+
+```shell
+git add --all
+git commit -m "interactive visuals"
+git push
+```
+
+Preview your changes online at your website! 
+
+**Note**: It may take up to 10 minutes for the content to render.
+
+<br>
+
+# Turn in your lab
+
+Add the online link to your website in your `README.md` file, e.g.
+
+```markdown
+This is my PM566 Final Project website home. The website is online at https://github.com/AbigailHorn/PM566-final-project .
+```
+
+Then please submit your lab by adding a link to this week's lab issue: https://github.com/USCbiostats/PM566/issues/49 in your final commit.
+
+<br>
+
+# Extra credit: Creating a personal website
+
+Note that if you want to create a *personal* website you can do so following the same instructions, with the one difference that the repository you create should be called `YOUR_GH_NAME.github.io`. 
+
+
+<br>
+<br>
+
+# References
+
+Useful references for creating websites can be found here:
+
+- [R Markdown reference guide](https://bookdown.org/yihui/rmarkdown/)
+- [R Markdown basic website themes](https://www.datadreaming.org/post/r-markdown-theme-gallery/#:~:text=There%20are%2012%20additional%20themes,your%20theme%20from%20the%20default%20.)
+
+This lab was informed by:
+
+- [Chapter 10.5: Websites in rmarkdown’s site generator](https://bookdown.org/yihui/rmarkdown/rmarkdown-site.html) in [R Markdown: The Definitive Guide](https://bookdown.org/yihui/rmarkdown/), Yihui Xie, J. J. Allaire, Garrett Grolemund
+- [Creating websites in R](https://www.emilyzabor.com/tutorials/rmarkdown_websites_tutorial.html), Emily C. Zabor   
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+<br>
+<br>
